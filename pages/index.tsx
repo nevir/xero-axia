@@ -8,7 +8,7 @@ import { useGoogleUser } from '../data/google/auth'
 
 const Home: NextPage = () => {
   const api = useGoogleAPI()
-  const { user, state, signIn } = useGoogleUser()
+  const { user, state, signIn, signOut } = useGoogleUser()
 
   return (
     <div className={styles.container}>
@@ -23,12 +23,18 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <ul>
-          <li>Google API loaded: {!!api}</li>
+          <li>Google API loaded: {api ? 'yes' : 'no'}</li>
           <li>
             Google User: {user?.getBasicProfile()?.getName()} ({state})
           </li>
         </ul>
-        <button onClick={() => signIn()}>Authenticate With Google</button>
+        {(state === 'idle' || state === 'canceled') && signIn && (
+          <button onClick={() => signIn()}>Log In With Google</button>
+        )}
+        {state === 'signing-in' && <button disabled>Log In With Google</button>}
+        {state === 'signed-in' && signOut && (
+          <button onClick={() => signOut()}>Log Out</button>
+        )}
       </main>
     </div>
   )

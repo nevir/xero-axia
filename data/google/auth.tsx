@@ -47,20 +47,28 @@ export function useGoogleAuthAPI() {
 export type WithGoogleUserState =
   | {
       state: 'idle' | 'signing-in' | 'canceled'
-      user?: undefined
-      error?: undefined
     }
   | { state: 'signed-in'; user: gapi.auth2.GoogleUser }
-  | { state: 'error'; user?: undefined; error: any }
+  | { state: 'error'; error: any }
+
+export interface WithGoogleUserResult {
+  state: WithGoogleUserState['state']
+  user?: gapi.auth2.GoogleUser
+  error?: any
+  signIn?: (options?: gapi.auth2.SigninOptions) => void
+  signOut?: () => void
+}
 
 /**
  *
  */
-export function useGoogleUser() {
+export function useGoogleUser(): WithGoogleUserResult {
   const api = useGoogleAuthAPI()
   const [state, setState] = react.useState<WithGoogleUserState>({
     state: 'idle',
   })
+
+  if (!api) return { ...state }
 
   function signIn(options?: gapi.auth2.SigninOptions) {
     console.debug('[Google API] auth signIn')
@@ -71,12 +79,11 @@ export function useGoogleUser() {
       console.warn('Currently signing in; ignoring')
       return
     }
-    if (!api) return
 
     console.debug('[Google API] signing in', options)
     setState({ state: 'signing-in' })
 
-    api
+    api!
       .signIn(options)
       .then((user) => {
         console.debug('[Google API] signed in', user)
@@ -93,5 +100,11 @@ export function useGoogleUser() {
       })
   }
 
-  return { ...state, signIn }
+  function signOut() {
+    console.debug('[Google API] auth signOut')
+    api!.signOut()
+    setState({ state: 'idle' })
+  }
+
+  return { ...state, signIn, signOut }
 }
