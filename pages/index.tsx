@@ -25,10 +25,10 @@ const Home: NextPage = () => {
         <ul>
           <li>Google API loaded: {api ? 'yes' : 'no'}</li>
           <li>
-            Google User: {user?.getBasicProfile()?.getName()} ({state})
+            Google User: {user?.getBasicProfile().getName()} ({state})
           </li>
         </ul>
-        {(state === 'signing-in' || !signIn) && (
+        {(state === 'signing-in' || state === 'initializing') && (
           <button disabled>Log In With Google</button>
         )}
         {(state === 'idle' || state === 'canceled') && signIn && (

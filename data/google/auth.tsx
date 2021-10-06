@@ -46,7 +46,7 @@ export function useGoogleAuthAPI() {
 
 export type WithGoogleUserState =
   | {
-      state: 'idle' | 'signing-in' | 'canceled'
+      state: 'initializing' | 'idle' | 'signing-in' | 'canceled'
     }
   | { state: 'signed-in'; user: gapi.auth2.GoogleUser }
   | { state: 'error'; error: any }
@@ -65,10 +65,14 @@ export interface WithGoogleUserResult {
 export function useGoogleUser(): WithGoogleUserResult {
   const api = useGoogleAuthAPI()
   const [state, setState] = react.useState<WithGoogleUserState>({
-    state: 'idle',
+    state: 'initializing',
   })
 
   if (!api) return { ...state }
+
+  if (state.state === 'initializing') {
+    setState({ state: 'idle' })
+  }
 
   const currentUser = api.currentUser.get()
   if (state.state === 'idle' && currentUser?.isSignedIn()) {
