@@ -1,5 +1,9 @@
 {
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "javascript.suggest.completeJSDocs": false,
+  "typescript.suggest.jsdoc.generateReturns": false,
+  "javascript.suggest.jsdoc.generateReturns": false,
+  "typescript.suggest.completeJSDocs": false
 }
