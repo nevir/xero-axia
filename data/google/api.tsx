@@ -1,75 +1,103 @@
 import * as react from 'react'
+import { newDeferred } from '../../lib/util/async'
 
 const GOOGLE_API_URL = 'https://apis.google.com/js/api.js'
 const GOOGLE_API_TIMEOUT_SECONDS = 5
 
-declare global {
-  interface Window {
-    __onGoogleAPILoaded: () => void
-    __googleAPILoaded: boolean
-  }
+interface WithGoogleAPIProps {
+  clientId: string
+  apiKey: string
+  discoveryDocs: string[]
+  scopes: string[]
+  loadTimeout?: number
+  children: JSX.Element
 }
 
-export const GoogleAPIScript = () => (
-  // // See https://github.com/facebook/react/issues/13863
-  // // See https://github.com/reactjs/rfcs/pull/129
-  <div
-    dangerouslySetInnerHTML={{
-      __html: `
-        <script
-          async
-          defer
-          src="${GOOGLE_API_URL}"
-          onLoad="
-            __googleAPILoaded = true;
-            if (typeof __onGoogleAPILoaded !== 'undefined') {
-              __onGoogleAPILoaded();
-            }
-          "
-        ></script>
-      `,
-    }}
-  />
-)
+const whenGapiInitialized = newDeferred<typeof gapi>()
+export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
+  react.useEffect(() => {
+    whenGapiInitialized.catch((error) => {
+      console.error('[Google API] error initializing:', error)
+    })
 
-let fullyLoaded = false
-const loadedCallbacks: (() => void)[] = []
-function onGoogleAPILoaded() {
-  console.warn('onGoogleAPILoaded')
-  gapi.load('xero-axia', {
-    callback: () => {
-      console.warn('gapi.load done')
-      fullyLoaded = true
+    console.debug('[Google API] injecting script')
+    injectScript(() => {
+      console.debug('[Google API] gapi.load')
+      gapi.load('client:auth', {
+        timeout:
+          typeof props.loadTimeout === 'number'
+            ? props.loadTimeout
+            : GOOGLE_API_TIMEOUT_SECONDS * 1000,
 
-      for (const callback of loadedCallbacks) {
-        callback()
-      }
-      loadedCallbacks.splice(0)
-    },
-    onerror: (error: any) => {
-      console.error(`Failed to load google API:`, error)
-    },
-    timeout: GOOGLE_API_TIMEOUT_SECONDS * 1000,
-    ontimeout: () => {
-      console.error(
-        `Timed out loading Google API after ${GOOGLE_API_TIMEOUT_SECONDS} seconds`,
-      )
-    },
-  })
-}
+        callback: () => {
+          const config = {
+            apiKey: props.apiKey,
+            discoveryDocs: props.discoveryDocs,
+            clientId: props.clientId,
+            scope: props.scopes.join(' '),
+          }
+          console.debug('[Google API] gapi.client.init', config)
 
-// To be accessible to GoogleAPIScript.
-if ('window' in global) {
-  if (window.__googleAPILoaded) {
-    onGoogleAPILoaded()
-  } else {
-    window.__onGoogleAPILoaded = onGoogleAPILoaded
-  }
+          gapi.client
+            .init(config)
+            .then(() => {
+              console.debug('[Google API] initialized')
+              whenGapiInitialized.resolve(gapi)
+            })
+            .catch((error) => {
+              whenGapiInitialized.reject(error)
+            })
+        },
+
+        onerror: (error: any) => {
+          whenGapiInitialized.reject(
+            new Error(`unable to load Google API: ${error}`),
+          )
+        },
+
+        ontimeout: () => {
+          whenGapiInitialized.reject(
+            new Error(
+              `Timed out loading Google API after ${GOOGLE_API_TIMEOUT_SECONDS} seconds`,
+            ),
+          )
+        },
+      })
+    })
+  }, [true])
+
+  return <react.Fragment>{props.children}</react.Fragment>
 }
 
 export function useGoogleAPI() {
-  const [loaded, setLoaded] = react.useState(fullyLoaded)
-  if (loaded) return gapi
+  const [api, setApi] = react.useState<typeof gapi | undefined>(undefined)
+  whenGapiInitialized.then((a) => setApi(a)).catch(() => {})
 
-  loadedCallbacks.push(() => setLoaded(true))
+  return api
+}
+
+// Internal
+
+function injectScript(callback: () => void) {
+  const existing = document.querySelector(`script[src="${GOOGLE_API_URL}"]`)
+  if (existing) {
+    throw new Error(`WithGoogleAPI should only be instantiated once`)
+  }
+
+  const script = document.createElement('script')
+  script.type = 'text/javascript'
+  script.src = GOOGLE_API_URL
+  script.async = true
+
+  // gapi can be populated asynchronously
+  function waitForGapi() {
+    if (typeof gapi === 'undefined') {
+      requestAnimationFrame(waitForGapi)
+      return
+    }
+    callback()
+  }
+  script.onload = waitForGapi
+
+  document.body.appendChild(script)
 }
