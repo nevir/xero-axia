@@ -1,8 +1,10 @@
 import * as react from 'react'
-import { newDeferred } from '../../lib/util/async'
+import { Deferred, newDeferred } from '../../lib/util/async'
 
-const GOOGLE_API_URL = 'https://apis.google.com/js/api.js'
+const GOOGLE_API_URL = 'https://apis.google.com/js/platform.js'
 const GOOGLE_API_TIMEOUT_SECONDS = 5
+
+export type GoogleAPI = typeof gapi
 
 interface WithGoogleAPIProps {
   clientId: string
@@ -14,7 +16,7 @@ interface WithGoogleAPIProps {
 }
 
 let instantiated = false
-const whenGapiInitialized = newDeferred<typeof gapi>()
+const whenGapiInitialized = newDeferred<GoogleAPI>()
 
 /**
  * Loads the Google API and any specific services you need.
@@ -33,7 +35,7 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
     console.debug('[Google API] injecting script')
     injectScript(() => {
       console.debug('[Google API] gapi.load')
-      gapi.load('client:auth', {
+      gapi.load('client:auth2', {
         timeout:
           typeof props.loadTimeout === 'number'
             ? props.loadTimeout
@@ -89,7 +91,7 @@ export function useGoogleAPI() {
     )
   }
 
-  const [api, setApi] = react.useState<typeof gapi | undefined>(undefined)
+  const [api, setApi] = react.useState<GoogleAPI | undefined>(undefined)
   whenGapiInitialized.then((a) => setApi(a)).catch(() => {})
 
   return api
