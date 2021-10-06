@@ -70,6 +70,11 @@ export function useGoogleUser(): WithGoogleUserResult {
 
   if (!api) return { ...state }
 
+  const currentUser = api.currentUser.get()
+  if (state.state === 'idle' && currentUser?.isSignedIn()) {
+    setState({ state: 'signed-in', user: currentUser })
+  }
+
   function signIn(options?: gapi.auth2.SigninOptions) {
     console.debug('[Google API] auth signIn')
     if (state.state === 'signed-in') {
