@@ -28,10 +28,12 @@ const Home: NextPage = () => {
             Google User: {user?.getBasicProfile()?.getName()} ({state})
           </li>
         </ul>
+        {(state === 'signing-in' || !signIn) && (
+          <button disabled>Log In With Google</button>
+        )}
         {(state === 'idle' || state === 'canceled') && signIn && (
           <button onClick={() => signIn()}>Log In With Google</button>
         )}
-        {state === 'signing-in' && <button disabled>Log In With Google</button>}
         {state === 'signed-in' && signOut && (
           <button onClick={() => signOut()}>Log Out</button>
         )}
