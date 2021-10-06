@@ -1,6 +1,7 @@
 import * as react from 'react'
 
-const GOOGLE_JS_API_URL = 'https://apis.google.com/js/api.js'
+const GOOGLE_API_URL = 'https://apis.google.com/js/api.js'
+const GOOGLE_API_TIMEOUT_SECONDS = 5
 
 declare global {
   interface Window {
@@ -18,7 +19,7 @@ export const GoogleAPIScript = () => (
         <script
           async
           defer
-          src="${GOOGLE_JS_API_URL}"
+          src="${GOOGLE_API_URL}"
           onLoad="
             __googleAPILoaded = true;
             if (typeof __onGoogleAPILoaded !== 'undefined') {
@@ -35,14 +36,25 @@ let fullyLoaded = false
 const loadedCallbacks: (() => void)[] = []
 function onGoogleAPILoaded() {
   console.warn('onGoogleAPILoaded')
-  gapi.load('xero-axia', () => {
-    console.warn('gapi.load done')
-    fullyLoaded = true
+  gapi.load('xero-axia', {
+    callback: () => {
+      console.warn('gapi.load done')
+      fullyLoaded = true
 
-    for (const callback of loadedCallbacks) {
-      callback()
-    }
-    loadedCallbacks.splice(0)
+      for (const callback of loadedCallbacks) {
+        callback()
+      }
+      loadedCallbacks.splice(0)
+    },
+    onerror: (error: any) => {
+      console.error(`Failed to load google API:`, error)
+    },
+    timeout: GOOGLE_API_TIMEOUT_SECONDS * 1000,
+    ontimeout: () => {
+      console.error(
+        `Timed out loading Google API after ${GOOGLE_API_TIMEOUT_SECONDS} seconds`,
+      )
+    },
   })
 }
 
