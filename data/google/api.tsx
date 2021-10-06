@@ -13,8 +13,18 @@ interface WithGoogleAPIProps {
   children: JSX.Element
 }
 
+let instantiated = false
 const whenGapiInitialized = newDeferred<typeof gapi>()
+
+/**
+ * Loads the Google API and any specific services you need.
+ *
+ * This must be instantiated once per application, and before calling
+ * useGoogleAPI.
+ */
 export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
+  instantiated = true
+
   react.useEffect(() => {
     whenGapiInitialized.catch((error) => {
       console.error('[Google API] error initializing:', error)
@@ -69,7 +79,16 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
   return <react.Fragment>{props.children}</react.Fragment>
 }
 
+/**
+ * Provides access to the raw Google API.
+ */
 export function useGoogleAPI() {
+  if (!instantiated) {
+    throw new Error(
+      `The application must first be configured via <WithGoogleAPI … /> before calling useGoogleAPI()`,
+    )
+  }
+
   const [api, setApi] = react.useState<typeof gapi | undefined>(undefined)
   whenGapiInitialized.then((a) => setApi(a)).catch(() => {})
 
