@@ -11,7 +11,7 @@ function App({ Component, pageProps }: AppProps) {
       discoveryDocs={[
         'https://sheets.googleapis.com/$discovery/rest?version=v4',
       ]}
-      scopes={['https://www.googleapis.com/auth/spreadsheets.readonly']}
+      scopes={['https://www.googleapis.com/auth/spreadsheets']}
     >
       <Component {...pageProps} />
     </WithGoogleAPI>
