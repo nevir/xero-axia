@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@types/gapi": "^0.0.41",
     "next": "11.1.2",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
   "devDependencies": {
+    "@types/gapi": "^0.0.41",
+    "@types/gapi.auth2": "^0.0.55",
     "@types/react": "17.0.27",
     "eslint": "7.32.0",
     "eslint-config-next": "11.1.2",
