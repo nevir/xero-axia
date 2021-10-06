@@ -7,7 +7,6 @@ import { useGoogleAPI } from '../data/google/api'
 
 const Home: NextPage = () => {
   const gapi = useGoogleAPI()
-  console.log('gapi:', gapi)
 
   return (
     <div className={styles.container}>

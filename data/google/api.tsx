@@ -80,9 +80,7 @@ export function useGoogleAPI() {
 
 function injectScript(callback: () => void) {
   const existing = document.querySelector(`script[src="${GOOGLE_API_URL}"]`)
-  if (existing) {
-    throw new Error(`WithGoogleAPI should only be instantiated once`)
-  }
+  if (existing) callback()
 
   const script = document.createElement('script')
   script.type = 'text/javascript'
