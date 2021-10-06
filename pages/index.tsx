@@ -3,9 +3,12 @@ import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
 
-import * as gsheetsScript from '../data/gsheets/script'
+import { useGoogleAPI } from '../data/google/api'
 
 const Home: NextPage = () => {
+  const gapi = useGoogleAPI()
+  console.log('gapi:', gapi)
+
   return (
     <div className={styles.container}>
       <Head>
@@ -19,7 +22,7 @@ const Home: NextPage = () => {
           Welcome to <a href='https://nextjs.org'>Next.js!</a>
         </h1>
 
-        <h2>{`GSheets API loaded: ${gsheetsScript.isLoaded()}`}</h2>
+        <h2>{`Google API loaded: ${!!gapi}`}</h2>
 
         <p className={styles.description}>
           Get started by editing{' '}
