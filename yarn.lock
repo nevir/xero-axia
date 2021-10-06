@@ -114,6 +114,13 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
+"@maxim_mazurok/gapi.client.sheets@latest":
+  version "4.0.20210930"
+  resolved "https://registry.npmjs.org/@maxim_mazurok/gapi.client.sheets/-/gapi.client.sheets-4.0.20210930.tgz#a9db785f7cd80df7e7894bc644ec441996eaf045"
+  integrity sha512-x11IKtYgvYTJgPfgfhH6AT9sffttZK6IuwTJNyOtxtCC/ViNTaOuDcKN9rRZhUlrWfLGxKUC+YMh8m15KAFoIg==
+  dependencies:
+    "@types/gapi.client" "*"
+
 "@napi-rs/triples@^1.0.3":
   version "1.0.3"
   resolved "https://registry.npmjs.org/@napi-rs/triples/-/triples-1.0.3.tgz#76d6d0c3f4d16013c61e45dfca5ff1e6c31ae53c"
@@ -217,6 +224,18 @@
   integrity sha512-chmROsbo28jI5or0aRP8X3aBuWkq8jJHj75al/C0BhI/qum8v7XSxxQ9aLpA2ULPWgWSyh6orn9ZCaUSA4iQCA==
   dependencies:
     "@types/gapi" "*"
+
+"@types/gapi.client.sheets@^4.0.20201029":
+  version "4.0.20201029"
+  resolved "https://registry.npmjs.org/@types/gapi.client.sheets/-/gapi.client.sheets-4.0.20201029.tgz#f56daa6851c695473514e64c7c0dc4fd8096a463"
+  integrity sha512-Om2t05O59QnaPTJZdx6UQvejn6tV55qKebnxcpRx0wXWiDpf5ZZ3GSRGzqXXZt0ggkRkyErLdLLy4LPVgqGlTw==
+  dependencies:
+    "@maxim_mazurok/gapi.client.sheets" latest
+
+"@types/gapi.client@*":
+  version "1.0.5"
+  resolved "https://registry.npmjs.org/@types/gapi.client/-/gapi.client-1.0.5.tgz#a6eb97e664fe51656c5b52258bd0afef28c76308"
+  integrity sha512-OTpbBMuzfC4lkvaomxqskI/iWRGW3zOZbDXZLNSyiuswTiSSGgILRLkg0POuZ4EgzEdaYaTlXpnXiCp07ri/Yw==
 
 "@types/gapi@*", "@types/gapi@^0.0.41":
   version "0.0.41"
