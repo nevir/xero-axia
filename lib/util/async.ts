@@ -16,3 +16,32 @@ export function newDeferred<TValue>(): Deferred<TValue> {
 
   return deferred
 }
+
+/**
+ * Constructs a PromiseLike object that executes only when first resolved.
+ */
+export function newLazyPromise<TValue>(
+  executor: (
+    resolve: (value: TValue | PromiseLike<TValue>) => void,
+    reject: (reason?: any) => void,
+  ) => void,
+): PromiseLike<TValue> {
+  let realPromise: Promise<TValue> | undefined
+  return {
+    then<TFulfilled = TValue, TRejected = never>(
+      onFulfilled?:
+        | ((value: TValue) => TFulfilled | PromiseLike<TFulfilled>)
+        | undefined
+        | null,
+      onRejected?:
+        | ((reason: any) => TRejected | PromiseLike<TRejected>)
+        | undefined
+        | null,
+    ): PromiseLike<TFulfilled | TRejected> {
+      realPromise = new Promise(executor)
+      this.then = realPromise.then.bind(realPromise)
+
+      return this.then(onFulfilled, onRejected)
+    },
+  }
+}
