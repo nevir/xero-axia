@@ -69,49 +69,6 @@ export const useGoogleAPI = singletonHook(async () => {
   return whenGapiInitialized
 })
 
-/**
- * Loads one or more Google API modules.
- */
-export async function loadGoogleAPIModule(
-  api: GoogleAPI,
-  ...moduleNames: string[]
-): Promise<void> {
-  const log = newLogger(
-    '[Google API]',
-    `{loadGoogleAPIModule ${moduleNames.join(':')}}`,
-  )
-
-  return new Promise((resolve, reject) => {
-    log.debug('start')
-    api.load(moduleNames.join(':'), {
-      timeout: API_LOAD_TIMEOUT * 1000,
-
-      callback: () => {
-        log.debug('success')
-        resolve()
-      },
-
-      onerror: (error: any) => {
-        log.debug('error:', error)
-        const modules = moduleNames.map((m) => `'${m}'`).join(', ')
-        reject(
-          new Error(`Failed to load Google API Module(s) ${modules}: ${error}`),
-        )
-      },
-
-      ontimeout: () => {
-        log.debug('timeout')
-        const modules = moduleNames.map((m) => `'${m}'`).join(', ')
-        reject(
-          new Error(
-            `Timed out loading Google API Module(s) ${modules} after ${API_LOAD_TIMEOUT} seconds`,
-          ),
-        )
-      },
-    })
-  })
-}
-
 export interface NewModuleHookOptions<TModule> {
   moduleName: string
   getPreInit: (api: GoogleAPI) => TModule
@@ -206,4 +163,47 @@ function injectScript(callback: (api: GoogleAPI) => void) {
 
   document.body.appendChild(script)
   log.debug('injected')
+}
+
+/**
+ * Loads one or more Google API modules.
+ */
+async function loadGoogleAPIModule(
+  api: GoogleAPI,
+  ...moduleNames: string[]
+): Promise<void> {
+  const log = newLogger(
+    '[Google API]',
+    `{loadGoogleAPIModule ${moduleNames.join(':')}}`,
+  )
+
+  return new Promise((resolve, reject) => {
+    log.debug('start')
+    api.load(moduleNames.join(':'), {
+      timeout: API_LOAD_TIMEOUT * 1000,
+
+      callback: () => {
+        log.debug('success')
+        resolve()
+      },
+
+      onerror: (error: any) => {
+        log.debug('error:', error)
+        const modules = moduleNames.map((m) => `'${m}'`).join(', ')
+        reject(
+          new Error(`Failed to load Google API Module(s) ${modules}: ${error}`),
+        )
+      },
+
+      ontimeout: () => {
+        log.debug('timeout')
+        const modules = moduleNames.map((m) => `'${m}'`).join(', ')
+        reject(
+          new Error(
+            `Timed out loading Google API Module(s) ${modules} after ${API_LOAD_TIMEOUT} seconds`,
+          ),
+        )
+      },
+    })
+  })
 }
