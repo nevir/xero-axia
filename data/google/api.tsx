@@ -1,6 +1,7 @@
 import * as react from 'react'
+
 import { newLogger } from '../../lib/log'
-import { singletonHook } from '../../lib/useSingleton'
+import { SingletonHook, singletonHook } from '../../lib/useSingleton'
 
 const API_URL = 'https://apis.google.com/js/api.js'
 const API_LOAD_TIMEOUT = 15
@@ -69,68 +70,32 @@ export const useGoogleAPI = singletonHook(async () => {
   return whenGapiInitialized
 })
 
-export interface NewModuleHookOptions<TModule> {
-  moduleName: string
-  getPreInit: (api: GoogleAPI) => TModule
-  init: (api: GoogleAPI) => Promise<TModule>
+export interface ModuleHookOptions<TModule> {
+  name: string
+  preload: (api: GoogleAPI) => PromiseLike<TModule>
+  resolve: (api: GoogleAPI) => PromiseLike<TModule>
 }
-/**
- *
- */
-export function newModuleHook<TModule>({
-  moduleName,
-  getPreInit,
-  init,
-}: NewModuleHookOptions<TModule>): () => TModule | undefined {
-  const log = newLogger('[Google API]', `{moduleHook ${moduleName}}`)
 
-  let whenModuleLoaded: Promise<TModule>
+export function moduleHook<TModule>(
+  options: ModuleHookOptions<TModule>,
+): SingletonHook<TModule> {
+  const log = newLogger('[Google API]', `{moduleHook ${options.name}}`)
 
-  return function useGoogleAPIModule() {
-    const [module, setModule] = react.useState<TModule | undefined>()
-    const [waiting, setWaiting] = react.useState(false)
-    const api = useGoogleAPI()
+  return singletonHook(async () => {
+    log.debug('loading')
+    const api = await useGoogleAPI.resolve
 
-    if (module) return module
-    if (!api) return
-    if (waiting) return
-
-    if (!whenModuleLoaded) {
-      const preInit = getPreInit(api)
-      if (preInit) {
-        log.debug('got pre-initialized module', preInit)
-        setModule(preInit)
-        whenModuleLoaded = Promise.resolve(preInit)
-        return preInit
-      }
-
-      setWaiting(true)
-      whenModuleLoaded = new Promise((resolve, reject) => {
-        loadGoogleAPIModule(api, moduleName)
-          .then(() => {
-            log.debug('init')
-            init(api)
-              .then((newModule) => {
-                log.debug('init success', newModule)
-                resolve(newModule)
-                setWaiting(false)
-              })
-              .catch((error) => {
-                log.error('initialization failure:', error)
-                reject(error)
-                setWaiting(false)
-              })
-          })
-          .catch((error) => {
-            log.error('failed to load API module:', error)
-            reject(error)
-            setWaiting(false)
-          })
-      })
+    const preloaded = await options.preload(api)
+    if (preloaded) {
+      log.debug('found preloaded', preloaded)
+      return preloaded
     }
 
-    whenModuleLoaded.then((m) => setModule(m)).catch(() => {})
-  }
+    await loadGoogleAPIModule(api, options.name)
+
+    log.debug('resolving')
+    return await options.resolve(api)
+  })
 }
 
 // Internal

@@ -1,14 +1,14 @@
 import * as react from 'react'
 import { newLogger } from '../../lib/log'
 
-import { GoogleAPI, newModuleHook } from './api'
+import { GoogleAPI, moduleHook } from './api'
 
 export type GoogleAuthAPI = InstanceType<GoogleAPI['auth2']['GoogleAuth']>
 
-export const useGoogleAuthAPI = newModuleHook<GoogleAuthAPI>({
-  moduleName: 'auth2',
-  getPreInit: (api) => api.auth2.getAuthInstance(),
-  init: async (api) => {
+export const useGoogleAuthAPI = moduleHook<GoogleAuthAPI>({
+  name: 'auth2',
+  preload: (api) => api.auth2.getAuthInstance(),
+  resolve: async (api) => {
     return await (api.auth2.init as any)()
   },
 })
