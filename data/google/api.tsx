@@ -1,6 +1,6 @@
 import * as react from 'react'
 import { newLogger } from '../../lib/log'
-import { Deferred, newDeferred } from '../../lib/util/async'
+import { newDeferred } from '../../lib/util/async'
 
 const API_URL = 'https://apis.google.com/js/api.js'
 const API_LOAD_TIMEOUT = 15
@@ -68,7 +68,10 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
 export async function loadGoogleAPIModule(
   ...moduleNames: string[]
 ): Promise<void> {
-  const log = newLogger('[Google API]', '{gapi.load}', ...moduleNames)
+  const log = newLogger(
+    '[Google API]',
+    `{loadGoogleAPIModule ${moduleNames.join(':')}}`,
+  )
 
   return new Promise((resolve, reject) => {
     log.debug('start')
@@ -115,6 +118,70 @@ export function useGoogleAPI() {
   whenGapiInitialized.then((a) => setApi(a)).catch(() => {})
 
   return api
+}
+
+export interface NewModuleHookOptions<TModule> {
+  moduleName: string
+  getPreInit: (api: GoogleAPI) => TModule
+  init: (api: GoogleAPI) => Promise<TModule>
+}
+/**
+ *
+ */
+export function newModuleHook<TModule>({
+  moduleName,
+  getPreInit,
+  init,
+}: NewModuleHookOptions<TModule>): () => TModule | undefined {
+  const log = newLogger('[Google API]', `{moduleHook ${moduleName}}`)
+
+  let whenModuleLoaded: Promise<TModule>
+
+  return function useGoogleAPIModule() {
+    const [module, setModule] = react.useState<TModule | undefined>()
+    const [waiting, setWaiting] = react.useState(false)
+    const api = useGoogleAPI()
+
+    if (module) return module
+    if (!api) return
+    if (waiting) return
+
+    if (!whenModuleLoaded) {
+      const preInit = getPreInit(api)
+      if (preInit) {
+        log.debug('got pre-initialized module', preInit)
+        setModule(preInit)
+        whenModuleLoaded = Promise.resolve(preInit)
+        return preInit
+      }
+
+      setWaiting(true)
+      whenModuleLoaded = new Promise((resolve, reject) => {
+        loadGoogleAPIModule(moduleName)
+          .then(() => {
+            log.debug('init')
+            init(api)
+              .then((newModule) => {
+                log.debug('init success', newModule)
+                resolve(newModule)
+                setWaiting(false)
+              })
+              .catch((error) => {
+                log.error('initialization failure:', error)
+                reject(error)
+                setWaiting(false)
+              })
+          })
+          .catch((error) => {
+            log.error('failed to load API module:', error)
+            reject(error)
+            setWaiting(false)
+          })
+      })
+    }
+
+    whenModuleLoaded.then((m) => setModule(m)).catch(() => {})
+  }
 }
 
 // Internal

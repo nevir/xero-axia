@@ -1,52 +1,16 @@
 import * as react from 'react'
-import { newLogger } from '../../lib/log'
 
-import { useGoogleAPI, GoogleAPI, loadGoogleAPIModule } from './api'
+import { GoogleAPI, newModuleHook } from './api'
 
 export type GoogleAuthAPI = InstanceType<GoogleAPI['auth2']['GoogleAuth']>
 
-/**
- *
- */
-let whenAuthAPIInitialized: Promise<GoogleAuthAPI> | undefined
-/**
- *
- */
-export function useGoogleAuthAPI() {
-  const api = useGoogleAPI()
-  const [authApi, setAuthApi] = react.useState<GoogleAuthAPI>()
-  if (!api) return
-
-  if (!whenAuthAPIInitialized) {
-    const log = newLogger('[Google API]', '{useGoogleAuthAPI}')
-    const config = {}
-    log.debug('initializing')
-    const authInstance = api.auth2.getAuthInstance()
-    if (authInstance) {
-      log.debug('using pre-initialized instance')
-      whenAuthAPIInitialized = Promise.resolve(authInstance)
-    } else {
-      whenAuthAPIInitialized = new Promise(async (resolve, reject) => {
-        await loadGoogleAPIModule('auth2')
-
-        api.auth2
-          .init(config)
-          .then((authApi) => {
-            log.debug('initialized', authApi)
-            resolve(authApi)
-          })
-          .catch((error: any) => {
-            log.error('initialization error:', error)
-            reject(error)
-          })
-      })
-    }
-  }
-
-  whenAuthAPIInitialized.then((a) => setAuthApi(a)).catch(() => {})
-
-  return authApi
-}
+export const useGoogleAuthAPI = newModuleHook<GoogleAuthAPI>({
+  moduleName: 'auth2',
+  getPreInit: (api) => api.auth2.getAuthInstance(),
+  init: async (api) => {
+    return await (api.auth2.init as any)()
+  },
+})
 
 export type WithGoogleUserState =
   | {
