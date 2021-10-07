@@ -1,6 +1,5 @@
 import * as react from 'react'
 import { newLogger } from '../../lib/log'
-import { newDeferred } from '../../lib/util/async'
 
 const API_URL = 'https://apis.google.com/js/api.js'
 const API_LOAD_TIMEOUT = 15
@@ -15,8 +14,7 @@ interface WithGoogleAPIProps {
   children: JSX.Element
 }
 
-let instantiated = false
-const whenGapiInitialized = newDeferred<GoogleAPI>()
+let whenGapiInitialized: PromiseLike<GoogleAPI>
 
 /**
  * Loads the Google API and any specific services you need.
@@ -25,41 +23,59 @@ const whenGapiInitialized = newDeferred<GoogleAPI>()
  * useGoogleAPI.
  */
 export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
-  const log = newLogger('[Google API]', '{WithGoogleAPI}')
-  instantiated = true
+  if (!whenGapiInitialized) {
+    const log = newLogger('[Google API]', '{WithGoogleAPI}')
+    whenGapiInitialized = new Promise((resolve, reject) => {
+      injectScript(() => {
+        loadGoogleAPIModule('client')
+          .then(() => {
+            const config = {
+              apiKey: props.apiKey,
+              discoveryDocs: props.discoveryDocs,
+              clientId: props.clientId,
+              scope: props.scopes.join(' '),
+            }
 
-  react.useEffect(() => {
-    whenGapiInitialized.catch((error) => {
-      log.error('initialization failure:', error)
+            log.debug('gapi.client.init', config)
+            gapi.client
+              .init(config)
+              .then(() => {
+                log.debug('gapi.client.init success')
+                resolve(gapi)
+              })
+              .catch((error) => {
+                log.debug('gapi.client.init error', error)
+                reject(error)
+              })
+          })
+          .catch((error) => {
+            log.error('failed to load client module:', error)
+            reject(error)
+          })
+      })
     })
-
-    injectScript(() => {
-      loadGoogleAPIModule('client')
-        .then(() => {
-          const config = {
-            apiKey: props.apiKey,
-            discoveryDocs: props.discoveryDocs,
-            clientId: props.clientId,
-            scope: props.scopes.join(' '),
-          }
-
-          log.debug('gapi.client.init', config)
-          gapi.client
-            .init(config)
-            .then(() => {
-              log.debug('gapi.client.init success')
-              whenGapiInitialized.resolve(gapi)
-            })
-            .catch((error) => {
-              log.debug('gapi.client.init error', error)
-              whenGapiInitialized.reject(error)
-            })
-        })
-        .catch((e) => whenGapiInitialized.reject(e))
-    })
-  }, [true])
+  }
 
   return <react.Fragment>{props.children}</react.Fragment>
+}
+
+/**
+ * Provides access to the raw Google API.
+ */
+export function useGoogleAPI() {
+  if (!whenGapiInitialized) {
+    throw new Error(
+      `The application must first be configured via <WithGoogleAPI … /> before calling useGoogleAPI()`,
+    )
+  }
+
+  const [api, setApi] = react.useState<GoogleAPI | undefined>(undefined)
+  whenGapiInitialized.then(
+    (a) => setApi(a),
+    () => {},
+  )
+
+  return api
 }
 
 /**
@@ -102,22 +118,6 @@ export async function loadGoogleAPIModule(
       },
     })
   })
-}
-
-/**
- * Provides access to the raw Google API.
- */
-export function useGoogleAPI() {
-  if (!instantiated) {
-    throw new Error(
-      `The application must first be configured via <WithGoogleAPI … /> before calling useGoogleAPI()`,
-    )
-  }
-
-  const [api, setApi] = react.useState<GoogleAPI | undefined>(undefined)
-  whenGapiInitialized.then((a) => setApi(a)).catch(() => {})
-
-  return api
 }
 
 export interface NewModuleHookOptions<TModule> {
