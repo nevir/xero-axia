@@ -1,4 +1,5 @@
 import * as react from 'react'
+import { newLogger } from '../../lib/log'
 
 import { GoogleAPI, newModuleHook } from './api'
 
@@ -31,6 +32,10 @@ export interface WithGoogleUserResult {
  *
  */
 export function useGoogleUser(): WithGoogleUserResult {
+  const log = react.useMemo(
+    () => newLogger('[Google API]', '{useGoogleUser}'),
+    [true],
+  )
   const api = useGoogleAuthAPI()
   const [state, setState] = react.useState<WithGoogleUserState>({
     state: 'initializing',
@@ -48,37 +53,37 @@ export function useGoogleUser(): WithGoogleUserResult {
   }
 
   function signIn(options?: gapi.auth2.SigninOptions) {
-    console.debug('[Google API] auth signIn')
+    log.debug('signIn')
     if (state.state === 'signed-in') {
       throw new Error(`Already signed in. Sign out first`)
     }
     if (state.state === 'signing-in') {
-      console.warn('Currently signing in; ignoring')
+      log.warn('Currently signing in; ignoring')
       return
     }
 
-    console.debug('[Google API] signing in', options)
+    log.debug('signing in', options)
     setState({ state: 'signing-in' })
 
     api!
       .signIn(options)
       .then((user) => {
-        console.debug('[Google API] signed in', user)
+        log.debug('signed in', user)
         setState({ state: 'signed-in', user })
       })
       .catch((error) => {
         if (error.error === 'popup_closed_by_user') {
-          console.debug('[Google API] user canceled sign in', error)
+          log.debug('user canceled sign in', error)
           setState({ state: 'canceled' })
         } else {
-          console.warn('[Google API] failed to sign in', error)
+          log.warn('failed to sign in', error)
           setState({ state: 'error', error })
         }
       })
   }
 
   function signOut() {
-    console.debug('[Google API] auth signOut')
+    log.debug('signOut')
     api!.signOut()
     setState({ state: 'idle' })
   }
