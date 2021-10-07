@@ -1,5 +1,6 @@
 import * as react from 'react'
 import { newLogger } from '../../lib/log'
+import { singletonHook } from '../../lib/useSingleton'
 
 const API_URL = 'https://apis.google.com/js/api.js'
 const API_LOAD_TIMEOUT = 15
@@ -15,7 +16,6 @@ interface WithGoogleAPIProps {
 }
 
 let whenGapiInitialized: PromiseLike<GoogleAPI>
-
 /**
  * Loads the Google API and any specific services you need.
  *
@@ -59,24 +59,15 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
   return <react.Fragment>{props.children}</react.Fragment>
 }
 
-/**
- * Provides access to the raw Google API.
- */
-export function useGoogleAPI() {
+export const useGoogleAPI = singletonHook(async () => {
   if (!whenGapiInitialized) {
     throw new Error(
       `The application must first be configured via <WithGoogleAPI … /> before calling useGoogleAPI()`,
     )
   }
 
-  const [api, setApi] = react.useState<GoogleAPI | undefined>(undefined)
-  whenGapiInitialized.then(
-    (a) => setApi(a),
-    () => {},
-  )
-
-  return api
-}
+  return whenGapiInitialized
+})
 
 /**
  * Loads one or more Google API modules.

@@ -7,13 +7,9 @@ export interface SingletonHook<TValue> {
   resolve: PromiseLike<TValue>
 }
 
-export interface SingletonHookOptions<TValue> {
-  factory: () => PromiseLike<TValue>
-}
-
-export function singletonHook<TValue>({
-  factory,
-}: SingletonHookOptions<TValue>): SingletonHook<TValue> {
+export function singletonHook<TValue>(
+  factory: () => PromiseLike<TValue>,
+): SingletonHook<TValue> {
   let singleton: TValue | undefined
   const resolveSingleton = newLazyPromise<TValue>((resolve, reject) => {
     factory().then(
