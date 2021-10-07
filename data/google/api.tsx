@@ -26,8 +26,8 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
   if (!whenGapiInitialized) {
     const log = newLogger('[Google API]', '{WithGoogleAPI}')
     whenGapiInitialized = new Promise((resolve, reject) => {
-      injectScript(() => {
-        loadGoogleAPIModule('client')
+      injectScript((api) => {
+        loadGoogleAPIModule(api, 'client')
           .then(() => {
             const config = {
               apiKey: props.apiKey,
@@ -36,15 +36,15 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
               scope: props.scopes.join(' '),
             }
 
-            log.debug('gapi.client.init', config)
-            gapi.client
+            log.debug('client.init', config)
+            api.client
               .init(config)
               .then(() => {
-                log.debug('gapi.client.init success')
-                resolve(gapi)
+                log.debug('client.init success')
+                resolve(api)
               })
               .catch((error) => {
-                log.debug('gapi.client.init error', error)
+                log.debug('client.init error', error)
                 reject(error)
               })
           })
@@ -79,9 +79,10 @@ export function useGoogleAPI() {
 }
 
 /**
- * Loads one or more gapi modules.
+ * Loads one or more Google API modules.
  */
 export async function loadGoogleAPIModule(
+  api: GoogleAPI,
   ...moduleNames: string[]
 ): Promise<void> {
   const log = newLogger(
@@ -91,7 +92,7 @@ export async function loadGoogleAPIModule(
 
   return new Promise((resolve, reject) => {
     log.debug('start')
-    gapi.load(moduleNames.join(':'), {
+    api.load(moduleNames.join(':'), {
       timeout: API_LOAD_TIMEOUT * 1000,
 
       callback: () => {
@@ -157,7 +158,7 @@ export function newModuleHook<TModule>({
 
       setWaiting(true)
       whenModuleLoaded = new Promise((resolve, reject) => {
-        loadGoogleAPIModule(moduleName)
+        loadGoogleAPIModule(api, moduleName)
           .then(() => {
             log.debug('init')
             init(api)
@@ -186,12 +187,12 @@ export function newModuleHook<TModule>({
 
 // Internal
 
-function injectScript(callback: () => void) {
+function injectScript(callback: (api: GoogleAPI) => void) {
   const log = newLogger('[Google API]', '{injectScript}')
   const existing = document.querySelector(`script[src="${API_URL}"]`)
   if (existing) {
     log.warn('script already injected; skipping')
-    callback()
+    callback(gapi)
     return
   }
 
@@ -208,7 +209,7 @@ function injectScript(callback: () => void) {
       return
     }
     log.debug('loaded')
-    callback()
+    callback(gapi)
   }
   script.onload = waitForGapi
 
