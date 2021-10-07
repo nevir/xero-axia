@@ -1,4 +1,5 @@
 import * as react from 'react'
+import { newLogger } from '../../lib/log'
 import { Deferred, newDeferred } from '../../lib/util/async'
 
 const API_URL = 'https://apis.google.com/js/api.js'
@@ -24,14 +25,14 @@ const whenGapiInitialized = newDeferred<GoogleAPI>()
  * useGoogleAPI.
  */
 export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
+  const log = newLogger('[Google API]', '{WithGoogleAPI}')
   instantiated = true
 
   react.useEffect(() => {
     whenGapiInitialized.catch((error) => {
-      console.error('[Google API] error initializing:', error)
+      log.error('initialization failure:', error)
     })
 
-    console.debug('[Google API] injecting script')
     injectScript(() => {
       loadGoogleAPIModule('client')
         .then(() => {
@@ -42,15 +43,15 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
             scope: props.scopes.join(' '),
           }
 
-          console.debug('[Google API] gapi.client.init', config)
+          log.debug('gapi.client.init', config)
           gapi.client
             .init(config)
             .then(() => {
-              console.debug('[Google API] gapi.client.init success')
+              log.debug('gapi.client.init success')
               whenGapiInitialized.resolve(gapi)
             })
             .catch((error) => {
-              console.debug('[Google API] gapi.client.init error', error)
+              log.debug('gapi.client.init error', error)
               whenGapiInitialized.reject(error)
             })
         })
@@ -67,18 +68,20 @@ export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
 export async function loadGoogleAPIModule(
   ...moduleNames: string[]
 ): Promise<void> {
+  const log = newLogger('[Google API]', '{gapi.load}', ...moduleNames)
+
   return new Promise((resolve, reject) => {
-    console.debug('[Google API] gapi.load', ...moduleNames)
+    log.debug('start')
     gapi.load(moduleNames.join(':'), {
       timeout: API_LOAD_TIMEOUT * 1000,
 
       callback: () => {
-        console.debug('[Google API] gapi.load', ...moduleNames, 'success')
+        log.debug('success')
         resolve()
       },
 
       onerror: (error: any) => {
-        console.debug('[Google API] gapi.load', ...moduleNames, 'error:', error)
+        log.debug('error:', error)
         const modules = moduleNames.map((m) => `'${m}'`).join(', ')
         reject(
           new Error(`Failed to load Google API Module(s) ${modules}: ${error}`),
@@ -86,7 +89,7 @@ export async function loadGoogleAPIModule(
       },
 
       ontimeout: () => {
-        console.debug('[Google API] gapi.load', ...moduleNames, 'timeout')
+        log.debug('timeout')
         const modules = moduleNames.map((m) => `'${m}'`).join(', ')
         reject(
           new Error(
@@ -117,8 +120,13 @@ export function useGoogleAPI() {
 // Internal
 
 function injectScript(callback: () => void) {
+  const log = newLogger('[Google API]', '{injectScript}')
   const existing = document.querySelector(`script[src="${API_URL}"]`)
-  if (existing) callback()
+  if (existing) {
+    log.warn('script already injected; skipping')
+    callback()
+    return
+  }
 
   const script = document.createElement('script')
   script.type = 'text/javascript'
@@ -128,12 +136,15 @@ function injectScript(callback: () => void) {
   // gapi can be populated asynchronously
   function waitForGapi() {
     if (typeof gapi === 'undefined') {
+      log.debug('polling')
       requestAnimationFrame(waitForGapi)
       return
     }
+    log.debug('loaded')
     callback()
   }
   script.onload = waitForGapi
 
   document.body.appendChild(script)
+  log.debug('injected')
 }

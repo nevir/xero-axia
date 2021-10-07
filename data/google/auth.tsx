@@ -1,4 +1,5 @@
 import * as react from 'react'
+import { newLogger } from '../../lib/log'
 
 import { useGoogleAPI, GoogleAPI, loadGoogleAPIModule } from './api'
 
@@ -17,11 +18,12 @@ export function useGoogleAuthAPI() {
   if (!api) return
 
   if (!whenAuthAPIInitialized) {
+    const log = newLogger('[Google API]', '{useGoogleAuthAPI}')
     const config = {}
-    console.debug('[Google API] initializing auth2')
+    log.debug('initializing')
     const authInstance = api.auth2.getAuthInstance()
     if (authInstance) {
-      console.debug('[Google API] using pre-initialized instance')
+      log.debug('using pre-initialized instance')
       whenAuthAPIInitialized = Promise.resolve(authInstance)
     } else {
       whenAuthAPIInitialized = new Promise(async (resolve, reject) => {
@@ -30,11 +32,11 @@ export function useGoogleAuthAPI() {
         api.auth2
           .init(config)
           .then((authApi) => {
-            console.debug('[Google API] auth2 initialized', authApi)
+            log.debug('initialized', authApi)
             resolve(authApi)
           })
           .catch((error: any) => {
-            console.error('[Google API] failed to initialize auth API', error)
+            log.error('initialization error:', error)
             reject(error)
           })
       })
