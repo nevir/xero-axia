@@ -1,8 +1,8 @@
 import * as react from 'react'
 import { Deferred, newDeferred } from '../../lib/util/async'
 
-const API_URL = 'https://apis.google.com/js/platform.js'
-const API_LOAD_TIMEOUT = 5
+const API_URL = 'https://apis.google.com/js/api.js'
+const API_LOAD_TIMEOUT = 15
 
 export type GoogleAPI = typeof gapi
 
