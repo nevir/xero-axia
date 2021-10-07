@@ -1,6 +1,6 @@
 import * as react from 'react'
 
-import { useGoogleAPI, GoogleAPI } from './api'
+import { useGoogleAPI, GoogleAPI, loadGoogleAPIModule } from './api'
 
 export type GoogleAuthAPI = InstanceType<GoogleAPI['auth2']['GoogleAuth']>
 
@@ -24,7 +24,9 @@ export function useGoogleAuthAPI() {
       console.debug('[Google API] using pre-initialized instance')
       whenAuthAPIInitialized = Promise.resolve(authInstance)
     } else {
-      whenAuthAPIInitialized = new Promise((resolve, reject) => {
+      whenAuthAPIInitialized = new Promise(async (resolve, reject) => {
+        await loadGoogleAPIModule('auth2')
+
         api.auth2
           .init(config)
           .then((authApi) => {
