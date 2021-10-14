@@ -1,4 +1,4 @@
-export type LogFunction = (message: string, ...params: any[]) => void
+export type LogFunction = (...params: any[]) => void
 
 export interface Logger {
   debug: LogFunction
@@ -13,6 +13,7 @@ export function newLogger(...prefix: [string, ...any[]]) {
     info: wrapLogFunc(prefix, console.info.bind(console)),
     warn: wrapLogFunc(prefix, console.warn.bind(console)),
     error: wrapLogFunc(prefix, console.error.bind(console)),
+    child: (...childPrefix: [...any]) => newLogger(...prefix, ...childPrefix),
   }
 }
 

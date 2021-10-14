@@ -1,11 +1,14 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
+
+import { useCurrentGoogleUser } from '../data/google/react'
 import styles from '../styles/Home.module.css'
 
-import { useGoogleUser } from '../data/google/auth'
+// import { useGoogleUser } from '../data/google-old/auth'
 
 const Home: NextPage = () => {
-  const { user, state, signIn, signOut } = useGoogleUser()
+  // const { user, state, signIn, signOut } = useGoogleUser()
+  const { user, state, signIn } = useCurrentGoogleUser()
 
   return (
     <div className={styles.container}>
@@ -20,9 +23,7 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <ul>
-          <li>
-            Google User: {user?.getBasicProfile().getName()} ({state})
-          </li>
+          <li>Google User: {user?.getBasicProfile().getName()}</li>
         </ul>
         {(state === 'signing-in' || state === 'initializing') && (
           <button disabled>Log In With Google</button>
@@ -30,9 +31,9 @@ const Home: NextPage = () => {
         {(state === 'idle' || state === 'canceled') && signIn && (
           <button onClick={() => signIn()}>Log In With Google</button>
         )}
-        {state === 'signed-in' && signOut && (
+        {/* {state === 'signed-in' && signOut && (
           <button onClick={() => signOut()}>Log Out</button>
-        )}
+        )} */}
       </main>
     </div>
   )

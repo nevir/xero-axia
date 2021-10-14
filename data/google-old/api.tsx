@@ -2,6 +2,12 @@ import * as react from 'react'
 
 import { newLogger } from '../../lib/log'
 import { SingletonHook, singletonHook } from '../../lib/useSingleton'
+import {
+  GoogleAPIModuleName,
+  injectScript,
+  loadGoogleAPI,
+  loadGoogleAPIModules,
+} from '../google/api'
 
 const API_URL = 'https://apis.google.com/js/api.js'
 const API_LOAD_TIMEOUT = 15
@@ -26,35 +32,10 @@ let whenGapiInitialized: PromiseLike<GoogleAPI>
 export const WithGoogleAPI = (props: WithGoogleAPIProps) => {
   if (!whenGapiInitialized) {
     const log = newLogger('[Google API]', '{WithGoogleAPI}')
-    whenGapiInitialized = new Promise((resolve, reject) => {
-      injectScript((api) => {
-        loadGoogleAPIModule(api, 'client')
-          .then(() => {
-            const config = {
-              apiKey: props.apiKey,
-              discoveryDocs: props.discoveryDocs,
-              clientId: props.clientId,
-              scope: props.scopes.join(' '),
-            }
 
-            log.debug('client.init', config)
-            api.client
-              .init(config)
-              .then(() => {
-                log.debug('client.init success')
-                resolve(api)
-              })
-              .catch((error) => {
-                log.debug('client.init error', error)
-                reject(error)
-              })
-          })
-          .catch((error) => {
-            log.error('failed to load client module:', error)
-            reject(error)
-          })
-      })
-    })
+    whenGapiInitialized = (async () => {
+      return await loadGoogleAPI(props)
+    })()
   }
 
   return <react.Fragment>{props.children}</react.Fragment>
@@ -71,7 +52,7 @@ export const useGoogleAPI = singletonHook(async () => {
 })
 
 export interface ModuleHookOptions<TModule> {
-  name: string
+  name: GoogleAPIModuleName
   preload: (api: GoogleAPI) => PromiseLike<TModule>
   resolve: (api: GoogleAPI) => PromiseLike<TModule>
 }
@@ -91,7 +72,7 @@ export function moduleHook<TModule>(
       return preloaded
     }
 
-    await loadGoogleAPIModule(api, options.name)
+    await loadGoogleAPIModules(api, options.name)
 
     log.debug('resolving')
     return await options.resolve(api)
@@ -100,35 +81,35 @@ export function moduleHook<TModule>(
 
 // Internal
 
-function injectScript(callback: (api: GoogleAPI) => void) {
-  const log = newLogger('[Google API]', '{injectScript}')
-  const existing = document.querySelector(`script[src="${API_URL}"]`)
-  if (existing) {
-    log.warn('script already injected; skipping')
-    callback(gapi)
-    return
-  }
+// function injectScript(callback: (api: GoogleAPI) => void) {
+//   const log = newLogger('[Google API]', '{injectScript}')
+//   const existing = document.querySelector(`script[src="${API_URL}"]`)
+//   if (existing) {
+//     log.warn('script already injected; skipping')
+//     callback(gapi)
+//     return
+//   }
 
-  const script = document.createElement('script')
-  script.type = 'text/javascript'
-  script.src = API_URL
-  script.async = true
+//   const script = document.createElement('script')
+//   script.type = 'text/javascript'
+//   script.src = API_URL
+//   script.async = true
 
-  // gapi can be populated asynchronously
-  function waitForGapi() {
-    if (typeof gapi === 'undefined') {
-      log.debug('polling')
-      requestAnimationFrame(waitForGapi)
-      return
-    }
-    log.debug('loaded')
-    callback(gapi)
-  }
-  script.onload = waitForGapi
+//   // gapi can be populated asynchronously
+//   function waitForGapi() {
+//     if (typeof gapi === 'undefined') {
+//       log.debug('polling')
+//       requestAnimationFrame(waitForGapi)
+//       return
+//     }
+//     log.debug('loaded')
+//     callback(gapi)
+//   }
+//   script.onload = waitForGapi
 
-  document.body.appendChild(script)
-  log.debug('injected')
-}
+//   document.body.appendChild(script)
+//   log.debug('injected')
+// }
 
 /**
  * Loads one or more Google API modules.

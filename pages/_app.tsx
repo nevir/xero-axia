@@ -1,5 +1,5 @@
 import type { AppProps } from 'next/app'
-import { WithGoogleAPI } from '../data/google/api'
+import { WithGoogleAPI, WithGoogleAuthAPI } from '../data/google/react'
 
 import '../styles/globals.css'
 
@@ -13,7 +13,9 @@ function App({ Component, pageProps }: AppProps) {
       ]}
       scopes={['https://www.googleapis.com/auth/spreadsheets']}
     >
-      <Component {...pageProps} />
+      <WithGoogleAuthAPI>
+        <Component {...pageProps} />
+      </WithGoogleAuthAPI>
     </WithGoogleAPI>
   )
 }
