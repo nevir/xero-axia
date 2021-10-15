@@ -4,8 +4,14 @@ import { GoogleAPI, loadGoogleAPIModules } from './api'
 
 const moduleLog = newLogger('[google.auth]         ')
 
-// TODO: Better, explicit type here.
-export type User = gapi.auth2.GoogleUser
+export interface User {
+  id: string
+  name: string
+  givenName: string
+  familyName: string
+  email: string
+  imageUrl: string
+}
 
 export type AuthStateChanged = (
   newUser: User | undefined,
@@ -32,9 +38,18 @@ export class GoogleAuth {
 
   // Users
 
-  private _toUser(user: gapi.auth2.GoogleUser) {
+  private _toUser(user: gapi.auth2.GoogleUser): User | undefined {
     if (!user.isSignedIn()) return
-    return user
+
+    const profile = user.getBasicProfile()
+    return {
+      id: profile.getId(),
+      name: profile.getName(),
+      givenName: profile.getGivenName(),
+      familyName: profile.getFamilyName(),
+      email: profile.getEmail(),
+      imageUrl: profile.getImageUrl(),
+    }
   }
 
   private _initializeCurrentUser() {

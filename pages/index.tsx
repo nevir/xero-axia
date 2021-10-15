@@ -1,5 +1,6 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
+import Image from 'next/image'
 
 import { useCurrentGoogleUser } from '../data/google/react'
 import styles from '../styles/Home.module.css'
@@ -20,7 +21,17 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <ul>
-          <li>Google User: {user?.getBasicProfile().getName()}</li>
+          <li>
+            Google User: {user?.name}{' '}
+            {user?.imageUrl && (
+              <Image
+                src={user.imageUrl}
+                alt={'user photo'}
+                height={32}
+                width={32}
+              />
+            )}
+          </li>
           <li>auth state: {state}</li>
         </ul>
 
