@@ -1,12 +1,16 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
+import { useRouter } from 'next/router'
 
-import { useCurrentGoogleUser } from '../data/google/react'
+import { useCurrentGoogleUser, useGoogleSheetsAPI } from '../data/google/react'
+import { Plan } from '../data/Plan'
 import styles from '../styles/Home.module.css'
 
 const Home: NextPage = () => {
+  const router = useRouter()
   const { user, state, signIn, signOut } = useCurrentGoogleUser()
+  const sheets = useGoogleSheetsAPI()
 
   return (
     <div className={styles.container}>
@@ -43,6 +47,17 @@ const Home: NextPage = () => {
           <button onClick={() => signOut()}>Log Out</button>
         )}
         {state === 'signing-out' && <button disabled>Log Out</button>}
+
+        {!!sheets && (
+          <button
+            onClick={async () => {
+              const plan = await Plan.create(sheets)
+              router.push(`/${plan.id}`)
+            }}
+          >
+            Create
+          </button>
+        )}
       </main>
     </div>
   )
