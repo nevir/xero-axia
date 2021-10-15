@@ -5,5 +5,16 @@
   "javascript.suggest.completeJSDocs": false,
   "typescript.suggest.jsdoc.generateReturns": false,
   "javascript.suggest.jsdoc.generateReturns": false,
-  "typescript.suggest.completeJSDocs": false
+  "typescript.suggest.completeJSDocs": false,
+  "files.exclude": {
+    "**/.*": true,
+    "**/.DS_Store": false,
+    "**/.git": false,
+    "**/.hg": false,
+    "**/.svn": false,
+    "**/next-env.d.ts": true,
+    "**/node_modules": true,
+    "**/tsconfig.json": true,
+    "**/yarn.lock": true
+  }
 }
