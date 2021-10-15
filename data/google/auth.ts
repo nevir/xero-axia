@@ -2,12 +2,17 @@ import { newLogger } from '../../lib/log'
 
 import { GoogleAPI, loadGoogleAPIModules } from './api'
 
-const moduleLog = newLogger('[google.auth] ')
+const moduleLog = newLogger('[google.auth]         ')
 
 // TODO: Better, explicit type here.
 export type User = gapi.auth2.GoogleUser
 
-export type UserUpdated = (newUser: User | undefined) => void
+export type AuthStateChanged = (
+  newUser: User | undefined,
+  newState: GoogleAuthState,
+) => void
+
+export type GoogleAuthState = 'idle' | 'signing-in' | 'signing-out'
 
 export class GoogleAuth {
   static async load(api: GoogleAPI) {
@@ -15,42 +20,32 @@ export class GoogleAuth {
     return new this(auth2)
   }
 
-  private _onCurrentUserChangedCallbacks = new Set<UserUpdated>()
+  public state: GoogleAuthState = 'idle'
+  public user: User | undefined
 
   constructor(
     module: typeof gapi['auth2'],
     private _auth = module.getAuthInstance(),
   ) {
+    this._initializeCurrentUser()
+  }
+
+  // Users
+
+  private _toUser(user: gapi.auth2.GoogleUser) {
+    if (!user.isSignedIn()) return
+    return user
+  }
+
+  private _initializeCurrentUser() {
+    this.user = this._toUser(this._auth.currentUser.get())
+
     // Listen globally so that we can manage the lifecycle of user changed
     // callbacks.
-    this._auth.currentUser.listen(() => {
-      const user = this.getCurrentUser()
-      for (const callback of this._onCurrentUserChangedCallbacks) {
-        callback(user)
-      }
+    this._auth.currentUser.listen((user) => {
+      moduleLog.debug('gapi currentUser callback:', user)
+      this._setUser(this._toUser(user))
     })
-  }
-
-  /**
-   * Registers a callback to be called any time the current user changes.
-   */
-  onCurrentUserChanged(callback: UserUpdated) {
-    this._onCurrentUserChangedCallbacks.add(callback)
-    callback(this.getCurrentUser())
-
-    return () => {
-      this._onCurrentUserChangedCallbacks.delete(callback)
-    }
-  }
-
-  /**
-   * Retrieves the current user.
-   */
-  getCurrentUser() {
-    const user = this._auth.currentUser.get()
-    if (!user.isSignedIn()) return
-
-    return user
   }
 
   /**
@@ -58,18 +53,95 @@ export class GoogleAuth {
    */
   async signIn() {
     const log = moduleLog.child('{signIn}')
+    if (this.state !== 'idle') {
+      if (this.state === 'signing-in') {
+        log.warn('already signing in; ignoring')
+        return
+      } else {
+        throw new Error(
+          'Please wait for the current operation to complete before signing in',
+        )
+      }
+    }
 
     try {
-      log.debug('signing in')
+      this._setState('signing-in')
       await this._auth.signIn()
-      log.debug('signed in', this.getCurrentUser())
     } catch (error: any) {
       if (error.error === 'popup_closed_by_user') {
-        log.info('user canceled sign in', error)
+        log.info('user canceled sign in:', error)
       } else {
-        log.error('failed to sgin in', error)
+        log.error('failed to sign in:', error)
         throw error
       }
+    } finally {
+      this._setState('idle')
+    }
+  }
+
+  /**
+   * Signs the current user out.
+   */
+  async signOut() {
+    const log = moduleLog.child('{signOut}')
+    if (this.state !== 'idle') {
+      if (this.state === 'signing-out') {
+        log.warn('already signing out; ignoring')
+        return
+      } else {
+        throw new Error(
+          'Please wait for the current operation to complete before signing out',
+        )
+      }
+    }
+
+    try {
+      this._setState('signing-out')
+      await this._auth.signOut()
+    } catch (error: any) {
+      log.error('failed to sign out:', error)
+      throw error
+    } finally {
+      this._setState('idle')
+    }
+  }
+
+  // State Changes
+
+  private _onStateChangedCallbacks = new Set<AuthStateChanged>()
+
+  private _setState(newState: GoogleAuthState) {
+    if (this.state === newState) return
+
+    this.state = newState
+    this._emitStateChangeEvent()
+  }
+
+  private _setUser(newUser: User | undefined) {
+    if (this.user === newUser) return
+
+    this.user = newUser
+    this._emitStateChangeEvent()
+  }
+
+  private _emitStateChangeEvent() {
+    const { user, state } = this
+    moduleLog.debug('state change', { state, user })
+
+    for (const callback of this._onStateChangedCallbacks) {
+      callback(user, this.state)
+    }
+  }
+
+  /**
+   * Registers a callback to be called any time the current user changes.
+   */
+  onStateChanged(callback: AuthStateChanged) {
+    this._onStateChangedCallbacks.add(callback)
+    callback(this.user, this.state)
+
+    return () => {
+      this._onStateChangedCallbacks.delete(callback)
     }
   }
 }

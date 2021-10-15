@@ -4,7 +4,7 @@ import { newLogger } from '../../../lib/log'
 
 import { GoogleAPI, loadGoogleAPI } from '../api'
 
-const moduleLog = newLogger('[google.react]')
+const moduleLog = newLogger('[google.react.context]')
 
 // Google API
 

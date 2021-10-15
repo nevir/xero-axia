@@ -1,6 +1,6 @@
 import { newLogger } from '../../lib/log'
 
-const moduleLog = newLogger('[google.api]  ')
+const moduleLog = newLogger('[google.api]          ')
 
 export type GoogleAPI = typeof gapi
 

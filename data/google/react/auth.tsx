@@ -2,11 +2,11 @@ import * as react from 'react'
 
 import { newLogger } from '../../../lib/log'
 
-import { GoogleAuth } from '../auth'
+import { GoogleAuth, GoogleAuthState, User } from '../auth'
 
 import { GoogleAPIContext } from '.'
 
-const moduleLog = newLogger('[google.react.auth]')
+const moduleLog = newLogger('[google.react.auth]   ')
 
 export const GoogleAuthAPIContext = react.createContext<GoogleAuth | undefined>(
   undefined,
@@ -42,19 +42,33 @@ export const WithGoogleAuthAPI = (props: { children: JSX.Element }) => {
   )
 }
 
-export function useCurrentGoogleUser() {
+export interface CurrentGoogleUserValue {
+  user: User | undefined
+  state: GoogleAuthState | 'initializing'
+  signIn: () => Promise<void>
+  signOut: () => Promise<void>
+}
+
+/**
+ * Provides the current user.
+ */
+export function useCurrentGoogleUser(): CurrentGoogleUserValue {
   const auth = react.useContext(GoogleAuthAPIContext)
-  const [user, setUser] = react.useState(auth?.getCurrentUser())
+  const [value, setValue] = react.useState({
+    user: auth?.user,
+    state: auth?.state || 'initializing',
+  } as const)
+
   react.useEffect(() => {
     if (!auth) return
-    return auth.onCurrentUserChanged(setUser)
+    return auth.onStateChanged((user, state) => {
+      setValue({ user, state })
+    })
   }, [auth])
 
-  return react.useMemo(() => {
-    return {
-      user,
-      signIn: () => auth?.signIn(),
-      state: 'idle',
-    }
-  }, [auth, user])
+  return {
+    ...value,
+    signIn: () => auth!.signIn(),
+    signOut: () => auth!.signOut(),
+  }
 }
