@@ -108,27 +108,27 @@ export class GoogleAuth {
 
   // State Changes
 
-  private _onStateChangedCallbacks = new Set<AuthStateChanged>()
+  private _onStatusChangedCallbacks = new Set<AuthStateChanged>()
 
   private _setState(newState: GoogleAuthState) {
     if (this.state === newState) return
 
     this.state = newState
-    this._emitStateChangeEvent()
+    this._emitStatusChangeEvent()
   }
 
   private _setUser(newUser: User | undefined) {
     if (this.user === newUser) return
 
     this.user = newUser
-    this._emitStateChangeEvent()
+    this._emitStatusChangeEvent()
   }
 
-  private _emitStateChangeEvent() {
+  private _emitStatusChangeEvent() {
     const { user, state } = this
     moduleLog.debug('state change', { state, user })
 
-    for (const callback of this._onStateChangedCallbacks) {
+    for (const callback of this._onStatusChangedCallbacks) {
       callback(user, this.state)
     }
   }
@@ -136,12 +136,12 @@ export class GoogleAuth {
   /**
    * Registers a callback to be called any time the current user changes.
    */
-  onStateChanged(callback: AuthStateChanged) {
-    this._onStateChangedCallbacks.add(callback)
+  onStatusChanged(callback: AuthStateChanged) {
+    this._onStatusChangedCallbacks.add(callback)
     callback(this.user, this.state)
 
     return () => {
-      this._onStateChangedCallbacks.delete(callback)
+      this._onStatusChangedCallbacks.delete(callback)
     }
   }
 }

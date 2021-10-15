@@ -61,7 +61,7 @@ export function useCurrentGoogleUser(): CurrentGoogleUserValue {
 
   react.useEffect(() => {
     if (!auth) return
-    return auth.onStateChanged((user, state) => {
+    return auth.onStatusChanged((user, state) => {
       setValue({ user, state })
     })
   }, [auth])
